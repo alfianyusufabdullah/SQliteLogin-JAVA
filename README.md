@@ -1,10 +1,7 @@
-# Login-With-SQlite
+# Login With SQlite
 
-Login With SQLite seperti biasa ini cuman basic dan bisa dikembangkan lebih lanjut
 
-Demo - https://www.dropbox.com/s/t7sfjp1s0ab6iaz/TesLoginSQLite.apk?dl=0
-
-Sudah di tes di loli 5.0.1 miui8 sama stock rom JB 4.1.2
+Demo - https://www.dropbox.com/s/t7sfjp1s0ab6iaz/TesLoginSQLite.apk?dl=0.1.2
 
 # Screenshoot
 
