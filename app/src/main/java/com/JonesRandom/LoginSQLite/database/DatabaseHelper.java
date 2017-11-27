@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Handler;
+import android.util.Log;
 
 import com.JonesRandom.LoginSQLite.common.PreferenceManager;
 import com.JonesRandom.LoginSQLite.model.ModelUser;
@@ -38,17 +39,21 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(DatabaseConstan.QUERY_CREATE);
+
+        Log.i("Database", "onCreate: Database Created");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int i, int i1) {
         db.execSQL(DatabaseConstan.QUERY_UPGRADE);
         onCreate(db);
+
+        Log.i("Database", "onCreate: Database Upgraded");
     }
 
     public static class perform {
 
-        public static void Login(final String Email, final String Password, final AuthCallback callback) {
+        public static void Login(final String Email, final String Password, final PerformCallback callback) {
             if (database == null) {
                 database = INSTANCE.getWritableDatabase();
             }
@@ -90,7 +95,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             }, 3000);
         }
 
-        public static void Register(final ModelUser user, final AuthCallback callback) {
+        public static void Register(final ModelUser user, final PerformCallback callback) {
             if (database == null) {
                 database = INSTANCE.getWritableDatabase();
             }
@@ -119,11 +124,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 }
             }, 3000);
         }
+
+        public interface PerformCallback {
+            void loginSuccess();
+
+            void loginFailed(String error);
+        }
     }
 
-    public interface AuthCallback {
-        void loginSuccess();
 
-        void loginFailed(String error);
-    }
 }
