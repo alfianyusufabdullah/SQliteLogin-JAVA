@@ -19,6 +19,15 @@ public class DatabaseConstan {
     public static final String ROW_EMAIL = "email";
     public static final String ROW_USER = "user";
 
+    public static final String SIGNIN_ERR_PASSWORD = "Password Yang Kamu Masukkan Salah";
+    public static final String SIGNIN_ERR_EMAIL = "Email Yang Kamu Masukkan Tidak Terdaftar";
+
+    public static final String REGISTER_ERR_EMAIL = "Email Yang Kamu Masukkan Sudah Terdaftar";
+    public static final String REGISTER_ERROR = "Terjadi Kesalahan Saat Registrasi";
+    public static final String REGISTER_SUCCESS = "Berhasil Melakukan Registrasi";
+
+    public static final String AUTH_ON_PROGRESS = "Tunggu Sebentar";
+
     public static final String QUERY_CREATE = "CREATE TABLE IF NOT EXISTS " + DATABASE_TABLE + "("
             + ROW_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
             + ROW_USER + " TEXT,"

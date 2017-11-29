@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Handler;
 import android.util.Log;
+import android.util.Patterns;
 
 import com.JonesRandom.LoginSQLite.common.PreferenceManager;
 import com.JonesRandom.LoginSQLite.model.ModelUser;
@@ -22,6 +23,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static DatabaseHelper INSTANCE;
     private static SQLiteDatabase database;
 
+    private static boolean databaseOpen = false;
+
     private DatabaseHelper(Context context) {
         super(context, DatabaseConstan.DATABASE_NAME, null, 1);
     }
@@ -31,8 +34,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     public static void closeDatabase() {
-        if (database != null) {
+        if (databaseOpen && database.isOpen()) {
             database.close();
+            databaseOpen = false;
         }
     }
 
@@ -54,83 +58,129 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static class perform {
 
         public static void Login(final String Email, final String Password, final PerformCallback callback) {
-            if (database == null) {
+            if (!databaseOpen) {
                 database = INSTANCE.getWritableDatabase();
+                databaseOpen = true;
             }
 
-            new Handler().postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    Cursor cursor = null;
-                    try {
-                        cursor = database.rawQuery(DatabaseConstan.Login(Email), null);
+            if (Email.isEmpty()) {
+                callback.inputError(0, "Masukkan Email Untuk Melanjutkan");
+                return;
+            }
 
-                        if (cursor.getCount() < 1) {
-                            String password = cursor.getString(cursor.getColumnIndex(DatabaseConstan.ROW_PASSWORD));
-                            if (Password.equals(password)) {
+            if (!Patterns.EMAIL_ADDRESS.matcher(Email).matches()) {
+                callback.inputError(0, "Email Yang Kamu Masukkan Sepertinya Kurang Valid");
+                return;
+            }
 
-                                ModelUser user = new ModelUser();
-                                user.userID = cursor.getInt(cursor.getColumnIndex(DatabaseConstan.ROW_ID));
-                                user.user = cursor.getString(cursor.getColumnIndex(DatabaseConstan.ROW_USER));
-                                user.email = cursor.getString(cursor.getColumnIndex(DatabaseConstan.ROW_EMAIL));
-                                user.password = cursor.getString(cursor.getColumnIndex(DatabaseConstan.ROW_PASSWORD));
+            if (Password.isEmpty()) {
+                callback.inputError(1, "Masukkan Password Untuk Melanjukan");
+                return;
+            }
 
-                                PreferenceManager.userLogin(user);
+            callback.progress();
+            new Handler().postDelayed(() -> {
+                Cursor cursor = null;
+                try {
+                    cursor = database.rawQuery(DatabaseConstan.Login(Email), null);
+                    cursor.moveToFirst();
+                    if (cursor.getCount() > 0) {
+                        String password = cursor.getString(cursor.getColumnIndex(DatabaseConstan.ROW_PASSWORD));
+                        if (Password.equals(password)) {
 
-                                callback.loginSuccess();
+                            ModelUser user = new ModelUser();
+                            user.userID = cursor.getInt(cursor.getColumnIndex(DatabaseConstan.ROW_ID));
+                            user.username = cursor.getString(cursor.getColumnIndex(DatabaseConstan.ROW_USER));
+                            user.email = cursor.getString(cursor.getColumnIndex(DatabaseConstan.ROW_EMAIL));
+                            user.password = cursor.getString(cursor.getColumnIndex(DatabaseConstan.ROW_PASSWORD));
 
-                            } else {
-                                callback.loginFailed("Password Yang Kamu Masukkan Salah");
-                            }
+                            PreferenceManager.userLogin(user);
+
+                            callback.success();
+
                         } else {
-                            callback.loginFailed("Email Tidak Terdaftar");
+                            callback.failed(DatabaseConstan.SIGNIN_ERR_PASSWORD);
                         }
+                    } else {
+                        callback.failed(DatabaseConstan.SIGNIN_ERR_EMAIL);
+                    }
 
-                    } finally {
-                        if (cursor != null) {
-                            cursor.close();
-                        }
+                } finally {
+                    if (cursor != null) {
+                        cursor.close();
                     }
                 }
             }, 3000);
         }
 
         public static void Register(final ModelUser user, final PerformCallback callback) {
-            if (database == null) {
+            if (!databaseOpen) {
                 database = INSTANCE.getWritableDatabase();
+                databaseOpen = true;
             }
 
-            new Handler().postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    boolean userAvailable = DatabaseConstan.cekUser(database, user.email);
+            if (user.getUser().isEmpty()) {
+                callback.inputError(0, "Masukkan Username Untuk Melanjutkan");
+                return;
+            }
 
-                    if (userAvailable) {
-                        callback.loginFailed("Email Yang Kamu Masukkan Sudah Terdaftar");
+            if (user.getEmail().isEmpty()) {
+                callback.inputError(1, "Masukkan Email Untuk Melanjutkan");
+                return;
+            }
+
+            if (!Patterns.EMAIL_ADDRESS.matcher(user.getEmail()).matches()) {
+                callback.inputError(1, "Email Yang Kamu Masukkan Sepertinya Kurang Valid");
+                return;
+            }
+
+            if (user.getPassword().isEmpty()) {
+                callback.inputError(2, "Masukkan Password Untuk Melanjutkan");
+                return;
+            }
+
+            if (user.getPasswordConfirm().isEmpty()) {
+                callback.inputError(3, "Konfirmasi Password Untuk Melanjutkan");
+                return;
+            }
+
+            if (!user.getPasswordConfirm().equals(user.getPassword())) {
+                callback.inputError(3, "Password Yang Kamu Masukkan Salah");
+                return;
+            }
+
+            callback.progress();
+            new Handler().postDelayed(() -> {
+                boolean userAvailable = DatabaseConstan.cekUser(database, user.email);
+
+                if (userAvailable) {
+                    callback.failed(DatabaseConstan.REGISTER_ERR_EMAIL);
+                } else {
+
+                    ContentValues values = new ContentValues();
+                    values.put(DatabaseConstan.ROW_USER, user.username);
+                    values.put(DatabaseConstan.ROW_EMAIL, user.email);
+                    values.put(DatabaseConstan.ROW_PASSWORD, user.password);
+
+                    long stat = database.insert(DatabaseConstan.DATABASE_TABLE, null, values);
+                    if (stat != 0) {
+                        callback.success();
                     } else {
-
-                        ContentValues values = new ContentValues();
-                        values.put(DatabaseConstan.ROW_USER, user.user);
-                        values.put(DatabaseConstan.ROW_EMAIL, user.email);
-                        values.put(DatabaseConstan.ROW_PASSWORD, user.password);
-
-                        long stat = database.insert(DatabaseConstan.DATABASE_TABLE, null, values);
-                        if (stat != 0) {
-                            callback.loginSuccess();
-                        } else {
-                            callback.loginFailed("Terjadi Kesalahan Saat Melakukan Pendaftaran");
-                        }
+                        callback.failed(DatabaseConstan.REGISTER_ERROR);
                     }
                 }
             }, 3000);
         }
 
         public interface PerformCallback {
-            void loginSuccess();
 
-            void loginFailed(String error);
+            void inputError(int indexInput, String Error);
+
+            void progress();
+
+            void success();
+
+            void failed(String error);
         }
     }
-
-
 }
