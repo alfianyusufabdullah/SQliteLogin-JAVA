@@ -11,7 +11,8 @@ public class ModelUser {
     public int userID;
     public String email;
     public String password;
-    public String user;
+    public String passwordConfirm;
+    public String username;
 
     public String getEmail() {
         return email;
@@ -21,8 +22,12 @@ public class ModelUser {
         return password;
     }
 
+    public String getPasswordConfirm() {
+        return passwordConfirm;
+    }
+
     public String getUser() {
-        return user;
+        return username;
     }
 
     public int getUserID() {
